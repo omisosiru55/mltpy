@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 from functools import wraps
 import time
 import queue
+import os
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 60 * 1024 * 1024 * 1024  # 60GBまでOK
@@ -230,8 +231,13 @@ def render_with_progress(mlt_file, output_file, uid):
     print(f"MLT duration: {total_frames} frames")
     
     progress_dict[uid] = {'current': 0, 'total': total_frames, 'status': 'running'}
-    cmd = ["xvfb-run", "-a", "/usr/bin/melt", str(mlt_file), "-progress", "-consumer", f"avformat:{output_file}"]
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    
+    # mlt_fileのディレクトリに移動してからmeltを実行
+    mlt_dir = os.path.dirname(os.path.abspath(mlt_file))
+    mlt_filename = os.path.basename(mlt_file)
+    
+    cmd = ["xvfb-run", "-a", "/usr/bin/melt", mlt_filename, "-progress", "-consumer", f"avformat:{output_file}"]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=mlt_dir, env=os.environ.copy())
 
     last_log_time = 0
     last_progress_time = 0
